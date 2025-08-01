@@ -11,6 +11,7 @@ import requests
 import tgcrypto
 import subprocess
 import concurrent.futures
+import fitz
 from math import ceil
 from utils import progress_bar
 from pyrogram import Client, filters
@@ -259,6 +260,10 @@ async def download_video(url,cmd, name):
 
 async def send_doc(bot: Client, m: Message, cc, ka, cc1, prog, count, name, channel_id):
     await prog.delete(True)
+
+    # ✅ Add watermark before sending
+    ka = apply_watermark(ka)
+
     reply1 = await bot.send_message(
         channel_id,
         f"**📩 Uploading File 📩:-**\n<blockquote>**{name}**</blockquote>"
@@ -279,8 +284,33 @@ async def send_doc(bot: Client, m: Message, cc, ka, cc1, prog, count, name, chan
         await m.reply_text(str(e))
     finally:
         await reply.delete(True)
+        await reply1.delete(True)
         if os.path.exists(ka):
-            os.remove(ka) 
+            os.remove(ka)
+        await asyncio.sleep(1) 
+
+def apply_watermark(path):
+    try:
+        if not os.path.exists(path):
+            print("PDF not found to watermark.")
+            return path
+        
+        doc = fitz.open(path)
+        for page in doc:
+            page.insert_text(
+                (150, 250),
+                "@MrFrontMan001",
+                rotate=45,
+                fontsize=30,
+                color=(0.5, 0.5, 0.5),
+                render_mode=3  # bold & outline
+            )
+        doc.save(path, garbage=4, deflate=True)
+        print("✅ Watermark added.")
+        return path
+    except Exception as e:
+        print("⚠️ Watermark error:", e)
+        return path
 
 
 def decrypt_file(file_path, key):  
@@ -309,13 +339,16 @@ async def download_and_decrypt_video(url, cmd, name, key):
 async def send_vid(bot: Client, m: Message, cc, filename, thumb, name, prog, channel_id):
     subprocess.run(f'ffmpeg -i "{filename}" -ss 00:00:10 -vframes 1 "{filename}.jpg"', shell=True)
     await prog.delete(True)
+
     reply1 = await bot.send_message(
         channel_id,
         f"**📩 Uploading Video 📩:-**\n<blockquote>**{name}**</blockquote>"
     )
+
     reply = await m.reply_text(
         f"**★彡 Uploading... 彡★**\n\n📚 𝗧𝗶𝘁𝗹𝗲 » {name}"
     )
+
     try:
         if thumb == "/d":
             thumbnail = f"{filename}.jpg"
@@ -327,6 +360,15 @@ async def send_vid(bot: Client, m: Message, cc, filename, thumb, name, prog, cha
 
     dur = int(duration(filename))
     start_time = time.time()
+
+    # ✅ Add filename prefix
+    base_name = os.path.basename(filename)
+    dir_name = os.path.dirname(filename)
+    prefix = "@MrFrontMan001."
+    new_base_name = prefix + base_name
+    new_filename = os.path.join(dir_name, new_base_name)
+    shutil.move(filename, new_filename)
+    filename = new_filename
 
     try:
         await m.reply_video(
