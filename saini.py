@@ -349,6 +349,7 @@ async def send_vid(bot: Client, m: Message, cc, filename, thumb, name, prog, cha
         )
     finally:
         await reply.delete(True)
+        await reply1.delete(True)
         if os.path.exists(filename):
             os.remove(filename)
         if os.path.exists(f"{filename}.jpg"):
