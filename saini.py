@@ -258,15 +258,29 @@ async def download_video(url,cmd, name):
 
 
 async def send_doc(bot: Client, m: Message, cc, ka, cc1, prog, count, name, channel_id):
-    reply = await bot.send_message(channel_id, f"Downloading pdf:\n<pre><code>{name}</code></pre>")
-    time.sleep(1)
+    await prog.delete(True)
+    reply1 = await bot.send_message(
+        channel_id,
+        f"**📩 Uploading File 📩:-**\n<blockquote>**{name}**</blockquote>"
+    )
+    reply = await m.reply_text(
+        f"**★彡 Uploading... 彡★**\n\n📚 𝗧𝗶𝘁𝗹𝗲 » {name}"
+    )
     start_time = time.time()
-    await bot.send_document(ka, caption=cc1)
-    count+=1
-    await reply.delete (True)
-    time.sleep(1)
-    os.remove(ka)
-    time.sleep(3) 
+    try:
+        await m.reply_document(
+            document=ka,
+            caption=cc1,
+            progress=progress_bar,
+            progress_args=(reply, start_time)
+        )
+        count += 1
+    except Exception as e:
+        await m.reply_text(str(e))
+    finally:
+        await reply.delete(True)
+        if os.path.exists(ka):
+            os.remove(ka) 
 
 
 def decrypt_file(file_path, key):  
@@ -294,26 +308,48 @@ async def download_and_decrypt_video(url, cmd, name, key):
 
 async def send_vid(bot: Client, m: Message, cc, filename, thumb, name, prog, channel_id):
     subprocess.run(f'ffmpeg -i "{filename}" -ss 00:00:10 -vframes 1 "{filename}.jpg"', shell=True)
-    await prog.delete (True)
-    reply1 = await bot.send_message(channel_id, f"**📩 Uploading Video 📩:-**\n<blockquote>**{name}**</blockquote>")
-    reply = await m.reply_text(f"**Generate Thumbnail:**\n<blockquote>**{name}**</blockquote>")
+    await prog.delete(True)
+    reply1 = await bot.send_message(
+        channel_id,
+        f"**📩 Uploading Video 📩:-**\n<blockquote>**{name}**</blockquote>"
+    )
+    reply = await m.reply_text(
+        f"**★彡 Uploading... 彡★**\n\n📚 𝗧𝗶𝘁𝗹𝗲 » {name}"
+    )
     try:
         if thumb == "/d":
             thumbnail = f"{filename}.jpg"
         else:
             thumbnail = thumb
-            
     except Exception as e:
         await m.reply_text(str(e))
-      
+        thumbnail = f"{filename}.jpg"
+
     dur = int(duration(filename))
     start_time = time.time()
 
     try:
-        await bot.send_video(channel_id, filename, caption=cc, supports_streaming=True, height=720, width=1280, thumb=thumbnail, duration=dur, progress=progress_bar, progress_args=(reply, start_time))
+        await m.reply_video(
+            video=filename,
+            caption=cc,
+            supports_streaming=True,
+            height=720,
+            width=1280,
+            thumb=thumbnail,
+            duration=dur,
+            progress=progress_bar,
+            progress_args=(reply, start_time)
+        )
     except Exception:
-        await bot.send_document(channel_id, filename, caption=cc, progress=progress_bar, progress_args=(reply, start_time))
-    os.remove(filename)
-    await reply.delete(True)
-    await reply1.delete(True)
-    os.remove(f"{filename}.jpg")
+        await m.reply_document(
+            document=filename,
+            caption=cc,
+            progress=progress_bar,
+            progress_args=(reply, start_time)
+        )
+    finally:
+        await reply.delete(True)
+        if os.path.exists(filename):
+            os.remove(filename)
+        if os.path.exists(f"{filename}.jpg"):
+            os.remove(f"{filename}.jpg")
